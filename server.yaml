@@ -1,0 +1,166 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: server
+  namespace: test
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config-aaa
+  namespace: test
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+
+        location /aaa {
+            default_type text/plain;
+            return 200 "aaaaaaaaaaaaaa\n";
+        }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config-bbb
+  namespace: test
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+
+        location /aaa {
+            default_type text/plain;
+            return 200 "bbbbbbbbbbbbbbbb\n";
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-aaa
+  namespace: test
+  labels:
+    app: server
+    color: aaa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server
+      color: aaa
+  template:
+    metadata:
+      labels:
+        app: server
+        color: aaa
+    spec:
+      serviceAccount: server
+      containers:
+        - name: server
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+      volumes:
+        - name: nginx-config-volume
+          configMap:
+            name: nginx-config-aaa
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-bbb
+  namespace: test
+  labels:
+    app: server
+    color: bbb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server
+      color: bbb
+  template:
+    metadata:
+      labels:
+        app: server
+        color: bbb
+    spec:
+      serviceAccount: server
+      containers:
+        - name: server
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+      volumes:
+        - name: nginx-config-volume
+          configMap:
+            name: nginx-config-bbb
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: server
+  namespace: test
+  annotations:
+    mesh.traefik.io/traffic-type: "http"
+    mesh.traefik.io/retry-attempts: "2"
+    mesh.traefik.io/circuit-breaker-expression: "NetworkErrorRatio() > 0.30"
+spec:
+  selector:
+    app: server
+  ports:
+    - name: web
+      protocol: TCP
+      port: 80
+      targetPort: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: server-aaa
+  namespace: test
+  annotations:
+    mesh.traefik.io/traffic-type: "http"
+    mesh.traefik.io/retry-attempts: "2"
+    mesh.traefik.io/circuit-breaker-expression: "NetworkErrorRatio() > 0.30"
+spec:
+  selector:
+    app: server
+    color: aaa
+  ports:
+    - name: web
+      protocol: TCP
+      port: 80
+      targetPort: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: server-bbb
+  namespace: test
+  annotations:
+    mesh.traefik.io/traffic-type: "http"
+    mesh.traefik.io/retry-attempts: "2"
+    mesh.traefik.io/circuit-breaker-expression: "NetworkErrorRatio() > 0.30"
+spec:
+  selector:
+    app: server
+    color: bbb
+  ports:
+    - name: web
+      protocol: TCP
+      port: 80
+      targetPort: 80

@@ -1,0 +1,36 @@
+---
+apiVersion: specs.smi-spec.io/v1alpha3
+kind: HTTPRouteGroup
+metadata:
+  name: http-everything
+  namespace: test
+spec:
+  matches:
+    - name: api
+      pathRegex: /api
+      methods: ["GET"]
+    - name: aaa
+      pathRegex: /aaa
+      methods: ["GET","POST"]
+---
+apiVersion: access.smi-spec.io/v1alpha2
+kind: TrafficTarget
+metadata:
+  name: server
+  namespace: test
+spec:
+  destination:
+    kind: ServiceAccount
+    name: server
+    namespace: test
+    port: 80
+  rules:
+    - kind: HTTPRouteGroup
+      name: http-everything
+      matches:
+        - api
+        - aaa
+  sources:
+    - kind: ServiceAccount
+      name: client
+      namespace: test
