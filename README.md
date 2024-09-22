@@ -18,6 +18,9 @@ kubectl apply -f server.yaml
 kubectl apply -f client.yaml
 ```
 
+Connection directly to the service
+
+```
 k exec -ti -n test client-5fb5b75-r8hnp -- sh
 / # curl server.test.svc.cluster.local
 Hostname: server-79b55c4c65-rmtzt
@@ -28,8 +31,11 @@ GET / HTTP/1.1
 Host: server.test.svc.cluster.local
 User-Agent: curl/7.64.0
 Accept: */*
+```
 
+Connection through the mesh
 
+```
 / # curl server.test.traefik.mesh
 Hostname: server-79b55c4c65-snzl5
 IP: 127.0.0.1
@@ -47,7 +53,7 @@ X-Forwarded-Port: 80
 X-Forwarded-Proto: http
 X-Forwarded-Server: traefik-mesh-proxy-hhz8q
 X-Real-Ip: 10.244.0.79
-
+```
 
 ```
 k apply -f traffictarget.yaml
